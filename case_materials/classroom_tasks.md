@@ -12,3 +12,6 @@ After running the simulation, answer the following questions:
 8. Would you call the output a prediction, a scenario, or a role-played deliberation? Why?
 9. What risks arise if simulated stakeholders replace real public participation?
 10. How could the simulation be improved?
+11. Did any agent leave its role?
+12. Did any agent summarise the whole negotiation instead of making its own statement?
+13. How does role leakage affect simulation validity?
