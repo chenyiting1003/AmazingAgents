@@ -1,0 +1,14 @@
+The United Nations is considering a proposal for a Global AI and Climate Adaptation Fund. The fund would support climate vulnerable countries by providing AI tools for early warning systems, disaster response planning, agricultural risk monitoring, and public health preparedness.
+
+The proposal includes four policy components:
+
+Climate adaptation finance:
+High income countries and large technology economies would contribute to a shared fund. The fund would prioritise small island developing states, least developed countries, and climate vulnerable regions.
+AI infrastructure and capacity building:
+The fund would support local data infrastructure, training programmes, public sector AI capacity, and multilingual AI systems for climate adaptation.
+Data sharing and governance:
+Participating countries would share selected climate, disaster, agricultural, mobility, and public health data under agreed safeguards. Sensitive data would remain under national control.
+Accountability and safeguards:
+AI systems supported by the fund would need transparency, auditability, local participation, human oversight, and appeal mechanisms.
+
+The negotiation is difficult because actors disagree on responsibility, sovereignty, funding burden, technology transfer, intellectual property, data governance, and the role of private technology companies. Climate vulnerable states argue that countries with greater historical emissions and stronger AI capacity should contribute more. Some developed countries support the fund but want accountability and measurable outcomes. Some emerging economies support technology transfer but resist external monitoring. Technology companies support partnerships but want intellectual property protection and predictable procurement rules. Civil society groups demand public oversight and safeguards against surveillance, exclusion, and dependency.
