@@ -1,5 +1,7 @@
 # Agent roles for the classroom simulation
 
+These bullet points are **mirrored** in `seed_un_ai_climate_governance.txt` under **Stakeholder briefings** (what the LLM sees). If you change roles for class, update **both** so handouts and simulation stay aligned.
+
 ## United States
 
 ### Interests:
