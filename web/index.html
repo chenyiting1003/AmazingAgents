@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mini Model UN 实验台</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Mini Model UN · 全球 AI 与气候适应基金（课堂实验台）</h1>
+    <p>
+      本页用于在浏览器里查看模拟结果。请先在本机运行模拟生成 <code>outputs/</code> 下的文件，
+      再点击「刷新结果」。
+    </p>
+  </header>
+
+  <div class="layout">
+    <nav>
+      <button type="button" data-view="intro">说明与步骤</button>
+      <button type="button" data-view="transcript">多轮对话</button>
+      <button type="button" data-view="report">总结报告</button>
+      <button type="button" data-view="variables">量化摘要</button>
+      <button type="button" data-view="leakage">角色边界</button>
+      <button type="button" data-view="continue">继续讨论「指令」</button>
+      <button type="button" id="btn-refresh" style="margin-top: 1rem; border-style: dashed">
+        ⟳ 刷新结果
+      </button>
+    </nav>
+
+    <main>
+      <div id="output-status" class="hint" aria-live="polite"></div>
+
+      <section id="view-intro" class="panel-intro">
+        <h2>我们在模拟什么？</h2>
+        <p>
+          联合国层面讨论是否设立「Global AI and Climate Adaptation Fund」。仓库里的材料在
+          <code>case_materials/</code>：
+          <code>seed_un_ai_climate_governance.txt</code>（背景）、
+          <code>prediction_request.txt</code>（任务与五方、三轮议程）。
+        </p>
+        <p><strong>重要：</strong>输出是架空谈判推演，用于学习与效度讨论，不是对现实的预测。</p>
+        <h3>怎么跑出结果？</h3>
+        <ul>
+          <li>配置 <code>.env</code>（OpenAI 官方 Key 与模型名，见课程说明）。</li>
+          <li>激活虚拟环境并安装依赖：<code>pip install -r requirements.txt</code></li>
+          <li>运行：<code>python scripts/student_run_lab.py</code> 或 <code>python scripts/run_minisim.py</code></li>
+          <li>在本机另开一个终端运行本网页服务（二选一）：<br />
+            <code>python scripts/serve_lab_ui.py</code>（默认 <a href="http://127.0.0.1:8080/">http://127.0.0.1:8080/</a>）
+          </li>
+          <li>回到浏览器，点击 <strong>刷新结果</strong>；可查看 baseline 各标签，或在
+            <strong>继续讨论「指令」</strong> 里对代表方下指令生成续轮（会额外扣 API 费用）。</li>
+        </ul>
+        <p class="hint">
+          若页面空白或状态一直报错：请确认地址栏是 <code>http://127.0.0.1:8080/</code> 这类本地网址，
+          而不是 <code>file://...</code> 直接打开硬盘上的 html。
+        </p>
+      </section>
+
+      <section id="view-transcript" hidden>
+        <h2>多轮对话</h2>
+        <div id="transcript-mount"></div>
+      </section>
+
+      <section id="view-report" hidden>
+        <h2>总结报告（Markdown 文本）</h2>
+        <pre id="report-body" class="report-pre"></pre>
+      </section>
+
+      <section id="view-variables" hidden>
+        <h2>启发式变量（JSON）</h2>
+        <pre id="variables-body" class="json-pre"></pre>
+      </section>
+
+      <section id="view-leakage" hidden>
+        <h2>角色越界简报</h2>
+        <pre id="leakage-body" class="report-pre"></pre>
+      </section>
+
+      <section id="view-continue" hidden>
+        <h2>继续讨论（向代表方下指令）</h2>
+        <p class="hint">
+          下方指令会送交大模型，在<strong>已有 baseline 对话</strong>（<code>model_un_transcript.json</code>）基础上，
+          让所选代表再发言<strong>一整轮</strong>。会产生<strong>额外 API 费用</strong>。原始 baseline 文件不会被修改；
+          续聊记录在 <code>outputs/model_un_student_continuations.json</code>。
+        </p>
+        <form id="form-continue" class="continue-form">
+          <label for="instr-text"><strong>你的指令</strong>（中英文均可，例如：让所有方在数据共享上做出一项具体让步）</label>
+          <textarea id="instr-text" name="instruction" placeholder="在此输入你希望本局谈判如何继续…" required></textarea>
+          <div id="agent-checkboxes"><span class="hint">请先在「刷新结果」加载 baseline 后再勾选代表。</span></div>
+          <button type="submit" class="btn-primary" id="btn-continue">生成续轮发言</button>
+          <p id="continue-status" class="hint" aria-live="polite"></p>
+        </form>
+        <h3>已保存的续聊记录</h3>
+        <div id="continuation-history"></div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    课堂仓库（示例）：课程群公布的 GitHub 地址 · 勿在公开场合粘贴 API Key。
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

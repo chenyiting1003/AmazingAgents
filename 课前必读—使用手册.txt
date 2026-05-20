@@ -1,0 +1,465 @@
+================================================================================
+ 港科广 · Mini Model UN 社会模拟实验
+ 从克隆仓库 → 配置 API → 跑 baseline → 浏览器查看 → 可选续聊
+ 含：输出说明、常见错误、课堂练习提示、快速命令清单
+================================================================================
+
+本说明只给选课同学用。建议先通读一遍，再按「步骤 A→E」顺序做；遇到问题用文中
+「常见错误」对照排查。
+
+全文默认你的电脑已能连外网（至少能访问 OpenAI 与 GitHub）；若校园网有限制，则选用Deepseek api
+以学校网络说明或课程群通知为准。
+
+
+--------------------------------------------------------------------------------
+〇、实验整体流程
+--------------------------------------------------------------------------------
+
+  步骤 A   git clone 课程仓库 AmazingAgents
+     ↓
+  步骤 B   在 AI 官网申请个人 API Key，写入本机 .env（不要上传 GitHub，可以比较不同的LLM输出的结果
+     ↓
+  步骤 C   创建 Python 虚拟环境 .venv，pip install -r requirements.txt
+     ↓
+  步骤 D   运行 python scripts/student_run_lab.py（内部会跑 run_minisim）
+           → 在 outputs/ 生成 baseline 四个文件（只含三轮多边对话，可自己更改）
+     ↓
+  步骤 E   另开终端运行 python scripts/serve_lab_ui.py
+           → 浏览器打开 http://127.0.0.1:8080/ 看「多轮对话」「报告」等
+           → 可选：在「继续讨论」里对代表方下指令，再生成续轮
+
+不要跳步骤 D 就做「继续讨论」：网页续聊依赖已存在的 model_un_transcript.json。
+
+--------------------------------------------------------------------------------
+一、我们在做什么案例？
+--------------------------------------------------------------------------------
+
+课程仓库（本课堂练习请用这个地址克隆）：
+  https://github.com/chenyiting1003/AmazingAgents
+
+克隆后本地文件夹名一般为 AmazingAgents（与 GitHub 仓库同名）。
+
+案例名称：Mini Model turn UN Policy Simulation 。
+
+主题：联合国层面讨论是否要设立「Global AI and Climate Adaptation Fund」
+（全球人工智能与气候适应基金）。
+
+课堂问题：
+  If the UN proposes a Global AI and Climate Adaptation Fund, how might
+  different actors negotiate responsibilities, funding, data sharing, and safeguards?
+
+必读声明：
+  程序里跑出来的多边谈判是「架空情景推演」，用来练习立场、分歧、让步、不确定性与
+  效度反思。它不是对未来的事实预测，也不是任何国家官方立场。
+
+（拓展练习，非必做）
+  自定义情境，可复制并改名 case_materials 下的背景与任务文件，
+  增改 seed / prediction_request 的文本；
+
+
+--------------------------------------------------------------------------------
+二、你要准备什么「输入」？
+--------------------------------------------------------------------------------
+
+（1）仓库已备好、一般不用改的课堂材料（路径相对于项目根目录）
+
+  case_materials/seed_un_ai_climate_governance.txt
+      背景：基金设想、政策模块、典型矛盾线索等。
+
+  case_materials/prediction_request.txt
+      任务：五个利益方、三轮谈判议程、关注点与输出取向。
+
+  case_materials/classroom_tasks.md、docs/validity_critique_template.md
+
+（2）你必须在本机配置：项目根目录下的 .env（由 .env.example 复制而来）
+
+  至少需要（具体见步骤 B；**若改用 DeepSeek**，见「步骤 B 补充」）：
+    LLM_API_KEY      ← 你在 AI 平台创建的个人密钥
+    LLM_BASE_URL     ← 本课默认 OpenAI 官方： https://api.openai.com/v1
+                       （DeepSeek 见补充节： https://api.deepseek.com）
+    LLM_MODEL_NAME   ← GPT-5 或教师公布的更高版本模型 ID（与官网一致）
+                       （DeepSeek 常用： deepseek-chat，以控制台为准）
+
+  可选（已有默认值，一般不用改）：
+    MAX_CONTINUE_TOKENS  — 浏览器里「继续讨论」续轮时的单次输出上限（见 .env.example）
+
+绝对不要：
+  · 把密钥发到微信 / QQ / 邮件正文 / 公共论坛
+  · 切勿将 .env 提交到 Git；勿在截图、课堂汇报材料、网盘分享中暴露含 sk- 的密钥
+  · 使用他人或教师的 Key（须使用本人账户）
+
+--------------------------------------------------------------------------------
+三、会产出什么「输出」？（文件在哪里）
+--------------------------------------------------------------------------------
+
+（1）Baseline（跑一次 「步骤 D」 后生成；再次跑步骤 D 通常会覆盖同名文件）
+
+  目录：项目根目录下的 outputs/
+
+  model_un_transcript.json
+      官方脚本跑出的「三轮」多边对话全文（结构化 JSON），是网页与续聊的基准。
+
+  model_un_simulation_report.md
+      对整局 baseline 的综述报告。
+
+  model_un_variables.json
+      脚本内启发式关键词统计，仅作辅助阅读。
+
+  model_un_role_leakage_report.md
+      角色边界（是否越权替他人总结等）简要说明。
+
+（2）浏览器「继续讨论」生成（不累改 baseline 四个文件）
+
+  outputs/model_un_student_continuations.json
+      每在你提交一条「指令」并让模型生成一整轮发言，就会往该文件追加一条记录。
+      历史上的 baseline 文件 model_un_transcript.json **不会被修改**。
+
+若 outputs/ 不存在，步骤 D 成功后会自动创建。
+
+
+--------------------------------------------------------------------------------
+四、用的是什么软件栈与模型？
+--------------------------------------------------------------------------------
+
+· 语言：Python（建议 3.10～3.12，与课程环境一致即可）
+
+· 依赖（pip install -r requirements.txt）主要包括：
+    python-dotenv   —— 读取 .env
+    openai          —— 调用 OpenAI 兼容的 Chat Completions API
+
+· 实验台网页：
+    本地脚本 scripts/serve_lab_ui.py（Python 标准库 HTTP + 上述依赖）
+    浏览器访问；**不要用 file:// 直接打开 index.html**。
+
+· 模型要求（以教师与官网为准）：
+    LLM_BASE_URL=https://api.openai.com/v1
+    LLM_MODEL_NAME=gpt-5
+  若你账户里名称是 gpt-5.xxx 等，必须把 .env 写成与官网 **完全一致** 的 model id。
+  若报 model not found，先登录 platform.openai.com 核对可用模型列表。
+
+· 可选 —— **DeepSeek**（OpenAI 兼容接口，脚本无需修改）：
+    若需使用 DeepSeek，将 .env 设为 LLM_BASE_URL=https://api.deepseek.com ，
+    LLM_MODEL_NAME 填控制台当前可用的 id（常见为 deepseek-chat；详见「步骤 B 补充」）。
+    课堂若要求「必须 OpenAI」，以教师说明为准。
+
+· 费用：
+    baseline（步骤 D）会消耗一次「整局」对话 token；
+    每点一次网页「继续讨论」会再扣 **一整轮** 多代表发言的费用。
+    请自己控制次数，并在 OpenAI 后台关注用量。
+
+
+--------------------------------------------------------------------------------
+五、分步操作（A～E）与常见错误
+--------------------------------------------------------------------------------
+
+【准备软件】
+
+（1）Git      https://git-scm.com/downloads
+（2）Python   https://www.python.org/downloads/
+            Windows 安装时勾选 「Add Python to PATH」
+
+
+================================================================================
+步骤 A —— 用 Git 下载本项目
+================================================================================
+
+A1）打开终端
+    Windows：Win+R → powershell 或 cmd
+
+A2）进入你要存放本练习项目文件的目录，例如
+    cd %USERPROFILE%\Documents
+    （Mac/Linux： cd ~/Documents）
+
+A3）克隆（勿漏字母）
+    git clone https://github.com/chenyiting1003/AmazingAgents.git
+
+A4）进入项目
+    cd AmazingAgents
+
+确认当前目录下能看到：requirements.txt、case_materials、scripts、web 等。
+
+----------------------------------------------------------------------
+步骤 A 常见错误
+----------------------------------------------------------------------
+
+  · git 不是内部或外部命令 → 安装 Git 并允许命令行调用。
+
+  · fatal: unable to access … SSL / TLS → 换网络/热点或合规代理；勿禁用证书校验。
+
+  · Permission denied → 换有写权限的目录。
+
+  · 仅收到 zip → 解压后确认同样有 requirements.txt 与 scripts，后续步骤相同。
+
+
+================================================================================
+步骤 B —— OpenAI：注册、账单、API Key、写入 .env
+================================================================================
+
+【原则】须使用 **你本人** OpenAI 开发者账户与 API Key。
+
+【官方链接（只认平台域名）】
+
+  OpenAI 主站：     https://openai.com/
+  开发者控制台：   https://platform.openai.com/
+  创建 API Key：   https://platform.openai.com/api-keys
+  用量与账单：     登录后在 platform 侧栏进入 Billing / Usage（界面可能改版）
+
+【建议操作顺序】
+
+  1. 浏览器登录 platform.openai.com
+  2. 完成身份验证、绑定付费方式（若页面要求）
+  3. API Keys → Create secret key → 复制整串 sk-…
+     （弹窗关闭后通常无法再次看到完整密钥，请先粘到本机 .env）
+  4. 在 Models / Playground 确认可用模型名，记下 **正确 model id** 填 LLM_MODEL_NAME
+
+【写 .env】在 AmazingAgents 根目录：
+
+    Windows CMD：  copy .env.example .env
+    Mac/Linux：    cp .env.example .env
+
+用记事本或 VS Code 编辑 .env，至少包含（等号右侧不要加引号、不要多空格）：
+
+    LLM_API_KEY=sk-粘贴你的密钥
+    LLM_BASE_URL=https://api.openai.com/v1
+    LLM_MODEL_NAME=gpt-5
+
+Windows：若保存成 .env.txt，务必改名为 **.env**（无 .txt）。
+
+----------------------------------------------------------------------
+步骤 B 常见错误
+----------------------------------------------------------------------
+
+  · Key 仍是 PASTE_YOUR_API_KEY_HERE，或含引号/截断 → 重新复制粘贴。
+
+  · 401 / invalid API key → 到 api-keys 页轮转或新建 Key。
+
+  · billing / quota → 在 Billing 中检查余额与支付方式。
+
+  · model not found → LLM_MODEL_NAME 与官网列表不一致，或账号无权；改准确 id 后重试。
+
+  · 打不开 platform.openai.com → 网络限制，换网络或合规代理。
+
+
+================================================================================
+步骤 B 补充（可选）—— 使用 DeepSeek API
+================================================================================
+
+【说明】DeepSeek 提供与 OpenAI 兼容的 Chat Completions 接口，本仓库用同一套
+  python openai 客户端，只需改 .env 中的三项，**不用改代码**。
+
+【适用】对比不同厂商输出、或本地访问 OpenAI 不便时。
+
+【账号与密钥】
+
+  · 开放平台（注册、文档入口）：  https://platform.deepseek.com/
+  · API 文档：  https://api-docs.deepseek.com/
+  · 登录后在控制台创建 API Key（请只保存在本机 .env，勿外传、勿提交 Git）
+
+【.env 写法】项目根目录 .env 中与 LLM 相关的三行改为：
+
+    LLM_API_KEY=你的DeepSeek密钥
+    LLM_BASE_URL=https://api.deepseek.com
+    LLM_MODEL_NAME=deepseek-chat
+
+  注意：
+  · **地址以官网为准**：DeepSeek 文档里 OpenAI 格式的 base_url 是 **https://api.deepseek.com**
+   （**不要**在末尾加 `/v1`；本项目的 `openai` 客户端会像官方示例一样拼出 `/chat/completions`）。
+    网传或旧教程若写「…/v1」，个别环境可能仍能通，但应以官网 https://api-docs.deepseek.com/ 为准。
+
+  其它注意：
+  · 等号右侧一般 **不要** 加引号；不要多空格、不要把 Key 截断。
+  · LLM_MODEL_NAME 必须与你在 DeepSeek 控制台或文档里看到的 **当前可用模型 id** 一致。
+    常用对话模型为 deepseek-chat；官网亦提供 deepseek-v4-flash、deepseek-v4-pro 等，
+    以控制台与 https://api-docs.deepseek.com/ 为准。
+  · 费率、限流、可用模型列表以 DeepSeek 官网为准，可能随时间更新。
+
+【验证与跑实验】
+
+  1. 激活 .venv 后先测连通性：
+         python scripts/test_provider.py
+  2. 通过后照常跑 baseline 与网页：
+         python scripts/student_run_lab.py
+         python scripts/serve_lab_ui.py
+
+【常见现象】
+
+  · 401 / invalid key → 到 DeepSeek 控制台检查 Key 是否复制完整、是否被禁用或过期。
+  · model not found → LLM_MODEL_NAME 写错或账号暂不可用该模型；对照文档改 id。
+  · Connection timeout → 本机网络或防火墙无法访问 api.deepseek.com；换网络或合规代理。
+
+  其他排错仍可对照上文「步骤 B / 步骤 D 常见错误」与 docs/troubleshooting.md。
+
+
+================================================================================
+步骤 C —— Python 虚拟环境与依赖
+================================================================================
+
+当前目录须为 AmazingAgents 根目录（与 requirements.txt 同级）。
+
+C1）创建虚拟环境
+    python -m venv .venv
+    若不行可试： py -m venv .venv
+
+C2）激活
+    Windows CMD：     .venv\Scripts\activate.bat
+    Windows PowerShell： .venv\Scripts\Activate.ps1
+    Mac/Linux：       source .venv/bin/activate
+    成功时行首常见 (.venv) 前缀。
+
+C3）安装依赖
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+
+可选：校内若提供 PyPI 镜像，按讲义追加 -i 参数。
+
+----------------------------------------------------------------------
+步骤 C 常见错误
+----------------------------------------------------------------------
+
+  · Python 不是命令 → 重装 Python 并勾选 PATH，重开终端。
+
+  · PowerShell 无法运行脚本 → 换 CMD + activate.bat，或按教师说明调整策略。
+
+  · pip SSL / 代理错误 → 检查本机代理；换镜像源。
+
+  · Linux Permission denied → 勿 sudo；须在已激活的 .venv 内 pip。
+
+
+================================================================================
+步骤 D —— 运行 baseline 模拟（生成 outputs 四件套）
+================================================================================
+
+前提：已 cd 到项目根、已激活 .venv、已 pip install。
+
+推荐（带检查与友好提示）：
+    python scripts/student_run_lab.py
+
+Windows 可双击：
+    scripts\student_run_lab.bat
+
+等价核心命令（熟悉命令行者可直接用）：
+    python scripts/run_minisim.py
+
+成功标志：终端提示 Simulation complete；outputs/ 下出现四个 baseline 文件。
+
+----------------------------------------------------------------------
+步骤 D 常见错误
+----------------------------------------------------------------------
+
+  · Configure LLM_API_KEY … → 回到步骤 B。
+
+  · Connection error / timeout → 本机无法访问当前 LLM_BASE_URL（如 api.openai.com
+    或 api.deepseek.com），换网络或代理；并确认 .env 里地址未写错。
+
+  · 找不到 outputs → 看是否其实在别的目录运行；须在仓库根目录执行脚本。
+
+  · 报告是英文 → 正常（提示词与模型输出语言设计如此）。
+
+
+================================================================================
+步骤 E —— 浏览器实验台（查看 + 可选「继续讨论」）
+================================================================================
+
+E1）**再开一个终端**（保持第一个终端不关亦可），同样 cd 到 AmazingAgents 根目录，
+    **建议**也 activate .venv（与安装依赖时同一环境，避免缺 openai）：
+
+    cd AmazingAgents
+    .venv\Scripts\activate.bat          （Windows CMD 示例）
+    source .venv/bin/activate          （Mac/Linux）
+
+E2）启动网页服务：
+
+    python scripts/serve_lab_ui.py
+
+    默认地址： http://127.0.0.1:8080/
+
+    若 8080 被占用：
+    python scripts/serve_lab_ui.py --port 8090
+    浏览器改为 http://127.0.0.1:8090/
+
+E3）在浏览器中：
+    · 点击 **「刷新结果」** 加载磁盘上最新 outputs。
+    · **多轮对话**：浏览 baseline 三轮（来自 model_un_transcript.json）。
+    · **总结报告 / 量化摘要 / 角色边界**：阅读对应文件。
+    · **继续讨论「指令」**（可选）：
+        - 在文本框用中文或英文写下你希望谈判**如何继续**（例如：要求各方就数据共享提出
+          一条可验证的让步）。
+        - 勾选本轮要发言的代表（至少一名；全选表示与「全体发言」一致）。
+        - 点击 **「生成续轮发言」**；等待结束。**每名勾选的代表会各调用一次 API**，费用按你 .env 里配置的厂商（OpenAI / DeepSeek 等）计费。
+        - 页面下方 **「已保存的续聊记录」** 会列出历史；磁盘上对应
+          model_un_student_continuations.json。
+
+----------------------------------------------------------------------
+步骤 E 常见错误
+----------------------------------------------------------------------
+
+  · 状态条全是「暂无」 → 先完成步骤 D；确认 outputs 非空后再刷新。
+
+  · 页面无法加载数据 / 控制台报跨域或失败 → 不要用 file:// 打开 html；必须用
+    serve_lab_ui 提供的 http://127.0.0.1:端口/。
+
+  · 「继续讨论」400 / 失败 → 确认 baseline 已存在；检查 .env；看终端里 serve_lab_ui
+    打出来的报错（勿把 Key 贴到群里）。
+
+  · Continuation unavailable / import error → 在同一 venv 下执行 pip install -r requirements.txt。
+
+  · 只改续聊、想清空历史 → 可自行删除或清空 outputs/model_un_student_continuations.json
+    （勿误删 baseline 四文件，除非你有意重跑步骤 D）。
+
+
+--------------------------------------------------------------------------------
+六、可选：自检命令（省钱 / 排错）
+--------------------------------------------------------------------------------
+
+  python scripts/smoke_test_classroom.py
+      检查案例文件、.env 必填项是否存在等（不替你跑完整 LLM 模拟）。
+
+  python scripts/test_provider.py
+      发送一条极短请求，检验 Key、网络、模型名是否可用（会产生极少计费）。
+
+建议：若 test_provider 失败，先不要反复点「继续讨论」浪费额度。
+
+
+--------------------------------------------------------------------------------
+七、诚信、隐私与费用
+--------------------------------------------------------------------------------
+
+· 每人使用自己的 API Key 与账单（OpenAI 或 DeepSeek 等，以课程要求为准）。
+
+· 切勿提交 .env、切勿在截图中暴露 sk- 密钥。
+
+· 课堂讨论与学习重点在于**模拟过程、效度与反思**，而非「预测是否押中现实」。
+
+
+--------------------------------------------------------------------------------
+八、课堂练习结束后可对照的自检清单
+--------------------------------------------------------------------------------
+
+  □ 仓库为 AmazingAgents，且本地能跑通步骤 D（四份 baseline 在 outputs/）
+  □ .env 未误传到 GitHub；截图、备忘录、共享文档中勿含密钥
+  □ 若课堂要求完成反思：已参照 docs/validity_critique_template.md 或 classroom_tasks.md
+  □ 若使用了「继续讨论」：能在网页看到记录，并能在 model_un_student_continuations.json
+    中对应（课堂讨论或小结时可简要说明你的指令意图）
+
+
+
+--------------------------------------------------------------------------------
+九、附录：快速命令汇总（复制用）
+--------------------------------------------------------------------------------
+
+  cd AmazingAgents
+  .venv\Scripts\activate.bat                     （Windows CMD，路径按你机器）
+  pip install -r requirements.txt
+
+  copy .env.example .env                         （首次配置，再编辑填入 Key）
+  python scripts/test_provider.py                （可选）
+
+  python scripts/student_run_lab.py              （步骤 D：baseline）
+
+  python scripts/serve_lab_ui.py                 （步骤 E：浏览器 http://127.0.0.1:8080/ ）
+
+
+--------------------------------------------------------------------------------
+文档版本说明：随仓库更新；若与课堂口头要求冲突，以教师当堂说明为准。
+提问请走课程群，**不要**在消息里粘贴完整 API Key。
+================================================================================

@@ -1,0 +1,25 @@
+Simulate a small Model United Nations policy discussion on the proposed Global AI and Climate Adaptation Fund.
+
+Use 5 stakeholder groups:
+
+United States
+European Union
+China
+Climate Vulnerable States Coalition
+Civil Society and Digital Rights Coalition
+
+Run 3 negotiation rounds:
+Round 1: Opening positions
+Round 2: Conflict and concessions
+Round 3: Revised agreement
+
+Focus on:
+
+funding responsibility
+technology transfer
+data sharing
+local capacity building
+safeguards and accountability
+likelihood of reaching a partial agreement
+
+The output should not claim to predict the real future. It should identify plausible negotiation dynamics, assumptions, conflicts, and uncertainty.
