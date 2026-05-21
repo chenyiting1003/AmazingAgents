@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mini Model UN · Lab desk</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Mini Model UN · Global AI &amp; Climate Adaptation Fund (classroom lab)</h1>
+    <p>
+      Use this page to inspect simulation outputs in the browser. Run a simulation locally so files
+      exist under <code>outputs/</code>, then click <strong>Refresh results</strong>.
+    </p>
+  </header>
+
+  <div class="layout">
+    <nav>
+      <button type="button" data-view="intro">Guide &amp; steps</button>
+      <button type="button" data-view="transcript">Multi-round dialogue</button>
+      <button type="button" data-view="report">Summary report</button>
+      <button type="button" data-view="variables">Quantitative summary</button>
+      <button type="button" data-view="leakage">Role boundaries</button>
+      <button type="button" data-view="continue">Continue discussion</button>
+      <button type="button" id="btn-refresh" style="margin-top: 1rem; border-style: dashed">
+        ⟳ Refresh results
+      </button>
+    </nav>
+
+    <main>
+      <div id="output-status" class="hint" aria-live="polite"></div>
+
+      <section id="view-intro" class="panel-intro">
+        <h2>What are we simulating?</h2>
+        <p>
+          A UN-style discussion on whether to create a &ldquo;Global AI and Climate Adaptation Fund.&rdquo;
+          Case materials live in <code>case_materials/</code>:
+          <code>seed_un_ai_climate_governance.txt</code> (background),
+          <code>prediction_request.txt</code> (task, five parties, three agenda rounds).
+        </p>
+        <p><strong>Important:</strong> outputs are a fictional negotiation exercise for learning and validity discussion, not a prediction of real events.</p>
+        <h3>How do I produce outputs?</h3>
+        <ul>
+          <li>Configure <code>.env</code> (this course defaults to <strong>DeepSeek</strong>: API key, <code>https://api.deepseek.com</code>, model name; see course notes for OpenAI).</li>
+          <li>Activate your virtual environment and install: <code>pip install -r requirements.txt</code></li>
+          <li>Generate baseline: open and run <code>Mini_Model_UN_Student_Lab.ipynb</code> from the repo root (or, for debugging, <code>python scripts/run_minisim.py</code>).</li>
+          <li>In another terminal, start this web server (pick one):<br />
+            <code>python scripts/serve_lab_ui.py</code> (default <a href="http://127.0.0.1:8080/">http://127.0.0.1:8080/</a>)
+          </li>
+          <li>Return here and click <strong>Refresh results</strong>; explore each tab, or use <strong>Continue discussion</strong> to issue instructions for follow-on rounds (extra API usage applies).</li>
+        </ul>
+        <p class="hint">
+          If the page is blank or errors persist: confirm the address bar shows a local URL such as
+          <code>http://127.0.0.1:8080/</code>, not <code>file://...</code> from opening the HTML file directly.
+        </p>
+      </section>
+
+      <section id="view-transcript" hidden>
+        <h2>Multi-round dialogue</h2>
+        <div id="transcript-mount"></div>
+      </section>
+
+      <section id="view-report" hidden>
+        <h2>Summary report (Markdown)</h2>
+        <pre id="report-body" class="report-pre"></pre>
+      </section>
+
+      <section id="view-variables" hidden>
+        <h2>Heuristic variables (JSON)</h2>
+        <pre id="variables-body" class="json-pre"></pre>
+      </section>
+
+      <section id="view-leakage" hidden>
+        <h2>Role-leakage brief</h2>
+        <pre id="leakage-body" class="report-pre"></pre>
+      </section>
+
+      <section id="view-continue" hidden>
+        <h2>Continue discussion (instructions to delegates)</h2>
+        <p class="hint">
+          Your instruction is sent to the LLM on top of the <strong>existing baseline</strong> transcript
+          (<code>model_un_transcript.json</code>) so selected delegates speak for <strong>one full round</strong>.
+          This incurs <strong>additional API cost</strong>. Baseline files are not modified; continuations are stored in
+          <code>outputs/model_un_student_continuations.json</code>.
+        </p>
+        <form id="form-continue" class="continue-form">
+          <label for="instr-text"><strong>Your instruction</strong> (any language; e.g. ask all parties for one concrete concession on data sharing)</label>
+          <textarea id="instr-text" name="instruction" placeholder="Describe how you want the negotiation to proceed…" required></textarea>
+          <div id="agent-checkboxes"><span class="hint">Click <strong>Refresh results</strong> after baseline exists, then select delegates.</span></div>
+          <button type="submit" class="btn-primary" id="btn-continue">Generate continuation round</button>
+          <p id="continue-status" class="hint" aria-live="polite"></p>
+        </form>
+        <h3>Saved continuations</h3>
+        <div id="continuation-history"></div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    Classroom repository (example): use the course GitHub link · never paste API keys in public channels.
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
